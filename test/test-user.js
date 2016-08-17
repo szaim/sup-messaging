@@ -14,7 +14,7 @@ var should = chai.should();
 
 chai.use(chaiHttp);
 
-describe('User endpoints', function() {
+describe.only('User endpoints', function() {
     beforeEach(function(done) {
         // Clear the database
         mongoose.connection.db.dropDatabase(done);
@@ -40,7 +40,8 @@ describe('User endpoints', function() {
 
             it('should return a list of users', function() {
                 var user = {
-                    username: 'joe'
+                    username: 'joe',
+                    password: 'thinkful'
                 };
 
                 // Create a user
@@ -48,7 +49,9 @@ describe('User endpoints', function() {
                     .then(function() {
                         // Get the list of users
                         return chai.request(app)
-                                   .get(this.listPattern.stringify());
+                                   .get(this.listPattern.stringify())
+                                //   .get('/protected')
+                                //   .auth('user', 'pass');
                     }.bind(this))
                     .then(function(res) {
                         // Check that the array contains a user
@@ -59,8 +62,11 @@ describe('User endpoints', function() {
                         res.body.length.should.equal(1);
                         res.body[0].should.be.an('object');
                         res.body[0].should.have.property('username');
+                        res.body[0].should.have.property('password');
                         res.body[0].username.should.be.a('string');
+                        res.body[0].password.should.be.a('string');
                         res.body[0].username.should.equal(user.username);
+                        res.body[0].password.should.equal(user.password);
                         res.body[0].should.have.property('_id');
                         res.body[0]._id.should.be.a('string');
                     });
@@ -69,23 +75,28 @@ describe('User endpoints', function() {
         describe('POST', function() {
             it('should allow adding a user', function() {
                 var user = {
-                    username: 'joe'
+                    username: 'joe',
+                    password: 'thinkful'
                 };
 
                 // Add a user
                 return chai.request(app)
                     .post(this.listPattern.stringify())
+                    // .get('/protected')
+                    // .auth('user', 'pass')
                     .send(user)
                     .then(function(res) {
                         // Check that an empty object is returned
-                        console.log(res.body);
+                        // console.log(res.body);
+                        // console.log(user.password, "PASSWORD!!!!!!!!");
+                        console.log(res.headers.location, "HEADERS LOCATION");
                         res.should.have.status(201);
                         res.type.should.equal('application/json');
                         res.charset.should.equal('utf-8');
                         res.should.have.header('location');
                         res.body.should.be.an('object');
-                        res.body.should.be.empty;
-
+                        // res.body.should.be.empty;
+                        
                         var params = this.singlePattern.match(res.headers.location);
                         // Fetch the user from the database, using the
                         // location header to get the ID
@@ -95,8 +106,10 @@ describe('User endpoints', function() {
                         // Check that the user exists in the database
                         should.exist(res);
                         res.should.have.property('username');
+                        res.should.have.property('password');
                         res.username.should.be.a('string');
                         res.username.should.equal(user.username);
+                        res.password.should.equal(user.password);
                     });
             });
             it('should reject users without a username', function() {

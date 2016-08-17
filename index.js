@@ -114,7 +114,7 @@ app.post('/users', jsonParser, function(req, res) {
             message: 'Incorrect field length: password'
         });
     }
-   bcrypt.genSalt(10, function(err, salt) {
+        bcrypt.genSalt(10, function(err, salt) {
         if (err) {
             return res.status(500).json({
                 message: 'Internal server error'
@@ -184,7 +184,7 @@ app.get('/users/:userId', function(req, res) {
     });
 });
 
-app.put('/users/:userId', jsonParser, function(req, res) {
+app.put('/users/:userId', passport.authenticate('basic', {session: false}), jsonParser, function(req, res) {
     User.findByIdAndUpdate(
         {_id: req.params.userId},
         { $set: {username: req.body.username}},
@@ -210,7 +210,7 @@ app.put('/users/:userId', jsonParser, function(req, res) {
     });
 });
 
-app.delete('/users/:userId', jsonParser, function(req, res) {
+app.delete('/users/:userId', passport.authenticate('basic', {session: false}), jsonParser, function(req, res) {
     User.findOneAndRemove(
         {_id: req.params.userId},
        function(err, user) {
@@ -225,7 +225,8 @@ app.delete('/users/:userId', jsonParser, function(req, res) {
     );
 });
 
-app.get('/messages', jsonParser, function(req, res) {
+app.get('/messages', passport.authenticate('basic', {session: false}), jsonParser, function(req, res) {
+// app.get('/messages', jsonParser, function(req, res) {
     // var query = {};
     // if (req.query.to != undefined) {
     //     query['to'] = req.query.to;
@@ -238,6 +239,7 @@ app.get('/messages', jsonParser, function(req, res) {
     var a_query = url.parse(req.url).query;
     var query = queryString.parse(a_query);
     Message.find(query)
+    .where("from").equals(req.user._id)
         .populate('from')
         .populate('to')
         .exec(function(err, messages) {
@@ -247,6 +249,7 @@ app.get('/messages', jsonParser, function(req, res) {
             });
         }
         console.log(res.body, "RESPONSE");
+        // console.log(req, "REQ");
         res.status(200).json(messages);
     });
 })
@@ -316,7 +319,7 @@ app.post('/messages', passport.authenticate('basic', {session: false}) ,jsonPars
         })
 })
 
-app.get('/messages/:messageId', jsonParser, function(req, res) {
+app.get('/messages/:messageId', passport.authenticate('basic', {session: false}), jsonParser, function(req, res) {
     if (!mongoose.Types.ObjectId.isValid(req.params.messageId)) {
         // console.log("CHECKPOINT 1");
         return res.status(404).json({
