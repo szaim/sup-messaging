@@ -24,24 +24,24 @@ describe.only('User endpoints', function() {
 
     describe('/users', function() {
         describe('GET', function() {
-            it('should return an empty list of users initially', function() {
-                // Get the list of users
-                return chai.request(app)
-                    .get(this.listPattern.stringify())
-                    .then(function(res) {
-                        // Check that it's an empty array
-                        res.should.have.status(200);
-                        res.type.should.equal('application/json');
-                        res.charset.should.equal('utf-8');
-                        res.body.should.be.an('array');
-                        res.body.length.should.equal(0);
-                    });
-            });
+            // it('should return an empty list of users initially', function() {
+            //     // Get the list of users
+            //     return chai.request(app)
+            //         .get(this.listPattern.stringify())
+            //         .then(function(res) {
+            //             // Check that it's an empty array
+            //             res.should.have.status(200);
+            //             res.type.should.equal('application/json');
+            //             res.charset.should.equal('utf-8');
+            //             res.body.should.be.an('array');
+            //             res.body.length.should.equal(0);
+            //         });
+            // });
 
             it('should return a list of users', function() {
                 var user = {
                     username: 'joe',
-                    password: 'thinkful'
+                    password: '$2a$10$UiykIHV8Qi3cvUZDzUiEneuKZiEtu0MWCAstSSMX0x3pc.0dYVjl.'
                 };
 
                 // Create a user
@@ -49,9 +49,9 @@ describe.only('User endpoints', function() {
                     .then(function() {
                         // Get the list of users
                         return chai.request(app)
-                                   .get(this.listPattern.stringify())
+                                  .get(this.listPattern.stringify())
                                 //   .get('/protected')
-                                //   .auth('user', 'pass');
+                                  .auth('joe', 'password123');
                     }.bind(this))
                     .then(function(res) {
                         // Check that the array contains a user
@@ -76,14 +76,14 @@ describe.only('User endpoints', function() {
             it('should allow adding a user', function() {
                 var user = {
                     username: 'joe',
-                    password: 'thinkful'
+                    password: 'password123'
                 };
 
                 // Add a user
                 return chai.request(app)
                     .post(this.listPattern.stringify())
                     // .get('/protected')
-                    // .auth('user', 'pass')
+                    // .auth('joe', 'password123')
                     .send(user)
                     .then(function(res) {
                         // Check that an empty object is returned
@@ -95,7 +95,7 @@ describe.only('User endpoints', function() {
                         res.charset.should.equal('utf-8');
                         res.should.have.header('location');
                         res.body.should.be.an('object');
-                        // res.body.should.be.empty;
+                        res.body.should.be.empty;
                         
                         var params = this.singlePattern.match(res.headers.location);
                         // Fetch the user from the database, using the
@@ -109,7 +109,9 @@ describe.only('User endpoints', function() {
                         res.should.have.property('password');
                         res.username.should.be.a('string');
                         res.username.should.equal(user.username);
-                        res.password.should.equal(user.password);
+                        res.password.should.not.equal(user.password);
+                        
+                        // try validating password
                     });
             });
             it('should reject users without a username', function() {
@@ -138,7 +140,8 @@ describe.only('User endpoints', function() {
             });
             it('should reject non-string usernames', function() {
                 var user = {
-                    username: 42
+                    username: 42,
+                    password: 'thinkful'
                 };
                 var spy = makeSpy();
                 // Add a user without a non-string username
@@ -162,6 +165,35 @@ describe.only('User endpoints', function() {
                         spy.called.should.be.false;
                     });
             });
+                    
+            it('should reject non-string password', function() {
+                var user = {
+                    username: 'John',
+                    password: 123
+                };
+                var spy = makeSpy();
+                // Add a user without a non-string username
+                return chai.request(app)
+                    .post(this.listPattern.stringify())
+                    .send(user)
+                    .then(spy)
+                    .catch(function(err) {
+                        // If the request fails, make sure it contains the
+                        // error
+                        var res = err.response;
+                        res.should.have.status(422);
+                        res.type.should.equal('application/json');
+                        res.charset.should.equal('utf-8');
+                        res.body.should.be.an('object');
+                        res.body.should.have.property('message');
+                        res.body.message.should.equal('Incorrect field type: password');
+                    })
+                    .then(function() {
+                        // Check that the request didn't succeed
+                        spy.called.should.be.false;
+                    });
+            });
+            
         });
     });
 
@@ -192,7 +224,8 @@ describe.only('User endpoints', function() {
 
             it('should return a single user', function() {
                 var user = {
-                    username: 'joe'
+                    username: 'joe',
+                    password: '$2a$10$UiykIHV8Qi3cvUZDzUiEneuKZiEtu0MWCAstSSMX0x3pc.0dYVjl.'
                 };
                 var userId;
                 // Add a user to the database
@@ -203,7 +236,8 @@ describe.only('User endpoints', function() {
                         return chai.request(app)
                             .get(this.singlePattern.stringify({
                                 userId: userId
-                            }));
+                            }))
+                            .auth('joe', 'password123');
                     }.bind(this))
                     .then(function(res) {
                         // Check that the user's information is returned
@@ -212,11 +246,14 @@ describe.only('User endpoints', function() {
                         res.charset.should.equal('utf-8');
                         res.body.should.be.an('object');
                         res.body.should.have.property('username');
+                        res.body.should.have.property('password');
                         res.body.username.should.be.a('string');
+                        res.body.password.should.be.a('string');
                         res.body.username.should.equal(user.username);
+                        res.body.password.should.equal(user.password);
                         res.body.should.have.property('_id');
                         res.body._id.should.be.a('string');
-                        res.body._id.should.equal(userId)
+                        res.body._id.should.equal(userId);
                     });
             });
         });
@@ -224,10 +261,12 @@ describe.only('User endpoints', function() {
         describe('PUT', function() {
             it('should allow editing a user', function() {
                 var oldUser = {
-                    username: 'joe'
+                    username: 'joe',
+                    password: '$2a$10$UiykIHV8Qi3cvUZDzUiEneuKZiEtu0MWCAstSSMX0x3pc.0dYVjl.'
                 };
                 var newUser = {
-                    username: 'joe2'
+                    username: 'joe2',
+                    password: '$2a$10$ClLq2A/FNqj8AKt0wC1f6.NyOV9xHWKIDdiE0k1QJQl2nZCG88FXS'
                 };
                 var userId;
                 // Add a user to the database
@@ -239,7 +278,8 @@ describe.only('User endpoints', function() {
                             .put(this.singlePattern.stringify({
                                 userId: userId
                             }))
-                            .send(newUser);
+                            .send(newUser)
+                            .auth('joe', 'password123');
                     }.bind(this))
                     .then(function(res) {
                         // Check that an empty object was returned
@@ -256,8 +296,11 @@ describe.only('User endpoints', function() {
                         // Check that the user has been updated
                         should.exist(res);
                         res.should.have.property('username');
+                         res.should.have.property('password');
                         res.username.should.be.a('string');
+                        res.password.should.be.a('string');
                         res.username.should.equal(newUser.username);
+                        res.password.should.not.equal(newUser.password);
                     });
             });
             it('should create a user if they don\'t exist', function() {

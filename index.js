@@ -53,7 +53,7 @@ app.get('/hidden', passport.authenticate('basic', {session: false}), function(re
     });
 });
 
-app.get('/users', function(req, res) {
+app.get('/users', passport.authenticate('basic', {session: false}), function(req, res) {
     User.find(function(err, users) {
         if (err) {
             return res.status(500).json({
@@ -140,7 +140,7 @@ app.post('/users', jsonParser, function(req, res) {
                     });
                 }
 
-                return res.status(201).json({});
+                return res.location('/users/'+user._id).status(201).json({});
             });
         });
     });
